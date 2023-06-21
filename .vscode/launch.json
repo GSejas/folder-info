@@ -8,9 +8,9 @@
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            "program": "fileinfo/__main__.py",
             "args": [
-                "C:\\Users\\a984569\\Documents\\repo\\taf-seed\\LocalezeAutomationSuite",
+                ".",
                 "1"    ],
             "console": "integratedTerminal",
             "justMyCode": true

@@ -1,12 +1,12 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='FileReader',
+    name='folderinfo',
     version='0.1',
     packages=find_packages(),
     entry_points={
         'console_scripts': [
-            'filereader = filereader.main:main',
+            'folderinfo = folderinfo.main:main',
         ],
     },
     classifiers=[
