@@ -1,11 +1,11 @@
-
 from typing import Union
 import os
 import sys
+
 LINES_TO_READ = 20
 
 # Optional argument specifies max lines per file
-lines_to_read = int(sys.argv[2]) if len(sys.argv) > 2 else LINES_TO_READ
+# lines_to_read = int(sys.argv[2]) if len(sys.argv) > 2 else LINES_TO_READ
 import ast
 
 import os
@@ -13,6 +13,7 @@ import configparser
 import logging
 from typing import Union
 from pathlib import Path
+
 
 class ConfigHandler:
     def __init__(self, config_file):
@@ -27,14 +28,14 @@ class ConfigHandler:
         except configparser.NoOptionError as e:
             logging.error(f"Option not found in configuration: {e}")
 
+
 class FileProcessor:
     def __init__(self, config):
-        self.lines_to_read = int(config.get('Main', 'LinesToRead'))
-        self.file_types = config.get('Main', 'FileTypes').split(',')
-
+        self.lines_to_read = int(config.get("Main", "LinesToRead"))
+        self.file_types = config.get("Main", "FileTypes").split(",")
 
     def analyze_code(self, file_path):
-        with open(file_path, 'r') as file:
+        with open(file_path, "r") as file:
             source_code = file.read()
             tree = ast.parse(source_code)
             for node in ast.walk(tree):
@@ -45,11 +46,13 @@ class FileProcessor:
 
     def process_file(self, file_path):
         logging.info(f"Processing File: {Path(file_path).name}")
+        print(f"Processing File: {Path(file_path).name}")
+        print(f"Processing File: {Path(file_path)}")
 
-        if file_path.endswith('.py'):
+        if file_path.endswith(".py"):
             self.analyze_code(file_path)
-            
-        with open(file_path, 'r') as file:
+
+        with open(file_path, "r") as file:
             for i, line in enumerate(file):
                 if i < self.lines_to_read:
                     # Ignore comments
@@ -66,10 +69,11 @@ class FileProcessor:
                 if file_name.endswith(tuple(self.file_types)):
                     self.process_file(os.path.join(root, file_name))
 
+
 class ProjectSummary:
     def __init__(self, directory, config):
         self.directory = directory
-        self.count_lines_extensions = config.get('Main', 'FileTypes').split(',')
+        self.count_lines_extensions = config.get("Main", "FileTypes").split(",")
 
     def generate_summary(self):
         extension_counts = {}
@@ -90,11 +94,3 @@ class ProjectSummary:
         print("File counts by type:")
         for ext, count in extension_counts.items():
             print(f"{ext}: {count}")
-
-
-
-
-
-
-
-

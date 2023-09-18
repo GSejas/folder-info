@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Current File",
+            "name": "Python: __main__ File",
             "type": "python",
             "request": "launch",
             "program": "fileinfo/__main__.py",
@@ -14,6 +14,84 @@
                 "1"    ],
             "console": "integratedTerminal",
             "justMyCode": true
+        },
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Python: Streamlit",
+            "type": "python",
+            "request": "launch",
+            "module": "streamlit",
+            "args": [
+                "run",
+                "streamlit_app.py"  // Cambia esto al nombre de tu script
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Generate File List",
+            "type": "python",
+            "request": "launch",
+            "program": "folderinfo",
+            "args": [
+                "generate",
+                "--directory",
+                "${input:directoryPath}",
+                "--output",
+                "${input:outputFileName}"
+            ],
+            "console": "integratedTerminal"
+        },
+
+        {
+            "name": "Analyze File List",
+            "type": "python",
+            "request": "launch",
+            "program": "folderinfo",
+            "args": [
+                "analyze",
+                "--file-list",
+                "${input:fileListPath}"
+            ],
+            "console": "integratedTerminal"
+        },
+
+        {
+            "name": "Analyze File List: Pregenerated",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "args": [
+                "analyze",
+                "--file-list",
+                ".\\file.json"
+            ],
+            "console": "integratedTerminal"
+        }
+    ],
+
+    "inputs": [
+        {
+            "id": "directoryPath",
+            "type": "promptString",
+            "description": "Please enter the directory path:"
+        },
+        {
+            "id": "outputFileName",
+            "type": "promptString",
+            "default": "file_list.json",
+            "description": "Please specify an output filename (default: file_list.json):"
+        },
+        {
+            "id": "fileListPath",
+            "type": "promptString",
+            "description": "Please enter the path to the file list:"
         }
     ]
 }

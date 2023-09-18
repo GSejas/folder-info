@@ -1,2 +1,4 @@
 fileinfo/FileReader.egg-info/**
 venv/**
+**.pyc
+**.egg-info
