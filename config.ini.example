@@ -1,0 +1,3 @@
+[Main]
+LinesToRead = 20
+FileTypes = .py,.bat,.md,.rst,.ini,.yaml,.

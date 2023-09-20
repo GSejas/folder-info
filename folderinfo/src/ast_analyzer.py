@@ -1,5 +1,4 @@
 import ast
-from . import utils
 from typing import List, Dict, Union, Optional
 
 
@@ -15,19 +14,59 @@ class AstAnalyzer:
     def __init__(self):
         """Initialize the AstAnalyzer."""
         self.tree = None
+        self.header = None
+        self.docstring = None
+        self.functions = None
+        self.classes = None
+        self.global_variables = None
+        self.imports = None
 
     def _parse_code(self, source_code: str):
         self.tree = ast.parse(source_code)
+
+    def get_class_names(self) -> List[Dict[str, Union[str, int, Optional[str]]]]:
+        results = []
+        for node in ast.walk(self.tree):
+            if isinstance(node, ast.ClassDef):
+                methods = [n.name for n in node.body if isinstance(n, ast.FunctionDef)]
+                class_info = {
+                    "name": node.name,
+                    "line": node.lineno,
+                    "docstring": (ast.get_docstring(node, clean=True) or "").split(
+                        "\n"
+                    )[0]
+                    if ast.get_docstring(node, clean=True)
+                    else None,
+                    "methods": methods,
+                }
+                results.append(class_info)
+        return results
+
+    def get_function_calls(self, node: ast.FunctionDef) -> List[str]:
+        calls = [
+            n.func.id
+            for n in ast.walk(node)
+            if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
+        ]
+        return calls
 
     def get_function_names(self) -> List[Dict[str, Union[str, int, Optional[str]]]]:
         results = []
         for node in ast.walk(self.tree):
             if isinstance(node, ast.FunctionDef):
+                args = [arg.arg for arg in node.args.args]
+                calls = self.get_function_calls(node)
                 func_info = {
                     "name": node.name,
                     "line": node.lineno,
                     "returns": str(node.returns) if node.returns else None,
-                    "docstring": ast.get_docstring(node, clean=True),
+                    "docstring": (ast.get_docstring(node, clean=True) or "").split(
+                        "\n"
+                    )[0]
+                    if ast.get_docstring(node, clean=True)
+                    else None,
+                    "arguments": args,
+                    "calls": calls,
                 }
                 results.append(func_info)
         return results
@@ -87,16 +126,20 @@ class AstAnalyzer:
             dict: Analysis results.
         """
         self._parse_code(source_code)
-        results = {
+        self.results = {
             "header": "",
             "docstring": self.get_module_docstring(source_code),
             "functions": self.get_function_names(),
+            "classes": self.get_class_names(),
             "global_variables": self.get_global_variables(),
             "imports": self.get_import() + self.get_import_from(),
         }
 
-        # Capture the first few lines of the top header
-        lines = source_code.splitlines()
-        results["header"] = "\n".join(lines[:5])
+        self.header = ""
+        self.docstring = self.get_module_docstring(source_code)
+        self.functions = self.get_function_names()
+        self.classes = self.get_class_names()
+        self.global_variables = self.get_global_variables()
+        self.imports = self.get_import() + self.get_import_from()
 
-        return utils.reduce_tokens(results)
+        return self.results

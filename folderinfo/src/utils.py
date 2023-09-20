@@ -22,6 +22,7 @@ def reduce_tokens(data):
                 "n": func["name"],
                 "l": func["line"],
                 **({"d": func["docstring"]} if func.get("docstring") else {}),
+                **({"a": func["calls"]} if func.get("calls") else {}),
             }
             for func in data["functions"]
         ]
@@ -29,7 +30,13 @@ def reduce_tokens(data):
     # Handle classes
     if data.get("classes"):
         new_data["c"] = [
-            {"n": cls["name"], "l": cls["line"]} for cls in data["classes"]
+            {
+                "n": cls["name"],
+                "l": cls["line"],
+                **({"d": cls["docstring"]} if cls.get("docstring") else {}),
+                **({"m": cls["methods"]} if cls.get("methods") else {}),
+            }
+            for cls in data["classes"]
         ]
 
     # Handle imports

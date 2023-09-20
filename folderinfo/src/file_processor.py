@@ -2,6 +2,7 @@ import os
 import json
 import logging
 from .ast_analyzer import AstAnalyzer
+from . import utils
 
 from pathlib import Path
 
@@ -30,6 +31,18 @@ class FileProcessor:
             )
             self.analyze_global_variables = self.config.get(
                 "AST", "AnalyzeGlobalVariables", fallback=False
+            )
+            self.analyze_docstring = self.config.get(
+                "AST", "AnalyzeDocstring", fallback=False
+            )
+            self.analyze_header = self.config.get(
+                "AST", "AnalyzeHeader", fallback=False
+            )
+            self.analyze_imports = self.config.get(
+                "AST", "AnalyzeImports", fallback=False
+            )
+            self.analyze_class_names = self.config.get(
+                "AST", "AnalyzeClasses", fallback=False
             )
         except Exception as e:
             logging.error(f"Error initializing settings from config: {e}")
@@ -95,11 +108,8 @@ class FileProcessor:
                 files = json.load(f)
 
             for file_path in files:
-                if os.path.basename(
-                    file_path
-                ) in self.specified_files or file_path.endswith(".py"):
-                    file_result = self._process_file(file_path)
-                    results[file_path] = file_result
+                file_result = self._process_file(file_path)
+                results[file_path] = file_result
 
             logging.info(f"Analysis complete for {len(files)} files.")
             self.analysis = results
@@ -107,24 +117,27 @@ class FileProcessor:
             logging.error(f"Error during analysis: {e}")
         return results
 
-    def output_analysis(self, output_filename):
+    def output_analysis(self, directory, output_filename):
         """
-        The function `output_analysis` writes the analysis results to an output file.
+        The `output_analysis` function writes the analysis results to an output file.
 
+        :param directory: The `directory` parameter is a string that represents the directory where the
+        analysis results are located
         :param output_filename: The `output_filename` parameter is a string that represents the name of the
         file where the analysis results will be written
         """
         with open(output_filename, "w", encoding="utf-8") as f:
+            f.write(f"Project dir: {directory}\n")
             for key in self.analysis:
                 body = self.analysis[key]
                 if isinstance(body, dict):
                     if "lines" in body:
-                        f.write(f"Processing file: {key}\n")
+                        f.write(f"{key.replace(directory, '')}\n")
                         for line in body.get("lines", []):
                             f.write(line.strip() + "\n")
-                    if "ast_analysis" in body:
-                        f.write(f"AST Analysis: {key}\n")
-                        f.write(str(body.get("ast_analysis")) + "\n")
+                    if "ast" in body:
+                        f.write(f"AST: \n")
+                        f.write(str(body.get("ast")) + "\n")
 
                 else:
                     f.write(f"Unexpected item in analysis: {body}\n")
@@ -139,22 +152,31 @@ class FileProcessor:
         :type file_path: str
         :return: a dictionary with the following keys and values:
         """
-        lines, source_code = self._read_file(file_path)
-
+        lines, source_code = self._read_file(
+            file_path, os.path.basename(file_path) in self.specified_files
+        )
         result = {"lines": lines, "file_path": file_path}
-
-        if file_path.endswith(self.file_types):  # No hardcoded '.py'
+        if file_path.endswith(".py") and not (
+            os.path.basename(file_path) in self.specified_files
+        ):
+            result["ast"] = {}
+            self.ast_analyzer.analyze(source_code)
             if self.analyze_function_names:
-                result["function_names"] = self.ast_analyzer.get_function_names()
-
+                result["ast"]["functions"] = self.ast_analyzer.functions
             if self.analyze_global_variables:
-                result["global_vars"] = self.ast_analyzer.get_global_variables()
+                result["ast"]["gs"] = self.ast_analyzer.global_variables
+            if self.analyze_imports:
+                result["ast"]["imports"] = self.ast_analyzer.imports
+            if self.analyze_docstring:
+                result["ast"]["docstring"] = self.ast_analyzer.docstring
+            if self.analyze_class_names:
+                result["ast"]["classes"] = self.ast_analyzer.classes
 
-            result["ast_analysis"] = self.ast_analyzer.analyze(source_code)
+            result["ast"] = utils.reduce_tokens(result["ast"])
 
         return result
 
-    def _read_file(self, file_path: str):
+    def _read_file(self, file_path: str, return_all: bool = False):
         """
         The `_read_file` function reads a file and returns a list of lines up to a specified limit,
         excluding lines that start with a "#" character.
@@ -162,7 +184,11 @@ class FileProcessor:
         :param file_path: The `file_path` parameter is a string that represents the path to the file that
         you want to read. It should be the absolute or relative path to the file on your system
         :type file_path: str
-        :return: The function `_read_file` returns a tuple containing two elements: `lines` and
+        :param return_all: The `return_all` parameter is a boolean flag that determines whether all lines of
+        the file should be returned or only up to a specified limit. If `return_all` is set to `True`, all
+        lines will be returned. If it is set to `False` (default), only up to, defaults to False
+        :type return_all: bool (optional)
+        :return: The `_read_file` function returns a tuple containing two elements: `lines` and
         `source_code`. `lines` is a list of strings, which are the lines of code read from the file.
         `source_code` is a string, which is the entire content of the file.
         """
@@ -170,7 +196,10 @@ class FileProcessor:
         with open(file_path, "r") as file:
             source_code = file.read()
             for i, line in enumerate(source_code.splitlines()):
-                if i < self.lines_to_read and not line.strip().startswith("#"):
+                if line.strip().startswith("#"):
+                    self.lines_to_read = self.lines_to_read + 1
+                    continue
+                if return_all or (i < self.lines_to_read):
                     lines.append(line.strip())
                 else:
                     break
